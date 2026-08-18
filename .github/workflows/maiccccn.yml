@@ -1,0 +1,55 @@
+name: Organize and Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Move files from m7f-main to root and cleanup workflows
+        run: |
+          # 1. حذف المجلد القديم لـ workflows لمنع أي تعارض
+          rm -rf .github/workflows
+          
+          # 2. نقل كل الملفات والمجلدات (بما فيها المخفية) من m7f-main إلى الصفحة الرئيسية
+          shopt -s dotglob
+          mv m7f-main/* .
+          shopt -u dotglob
+          
+          # 3. حذف مجلد m7f-main الفارغ
+          rm -rf m7f-main
+
+      - name: Set up Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Khazna-App
+          path: android/app/build/outputs/apk/debug/app-debug.apk
